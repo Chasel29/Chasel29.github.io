@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f3e7ec">
+<title>致小何同学</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif;
+    background:linear-gradient(160deg,#fcf7f9 0%,#f7e8ee 45%,#f2dce3 100%);
+    color:#5c2438;
+    user-select:none;-webkit-user-select:none;
+  }
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:50;}
+
+  /* ---------- 场景通用 ---------- */
+  .scene{
+    position:fixed;inset:0;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    padding:8vw;text-align:center;
+    opacity:0;visibility:hidden;
+    transition:opacity .8s ease, visibility 0s linear .8s;
+    z-index:10;
+  }
+  .scene.active{opacity:1;visibility:visible;transition:opacity .8s ease, visibility 0s;}
+
+  /* ---------- 信封开场动画 ---------- */
+  .envelope-wrap{
+    width:clamp(140px,32vw,190px);
+    height:clamp(110px,26vw,150px);
+    position:relative;
+    cursor:pointer;
+  }
+  .envelope{
+    width:100%;height:100%;
+    position:relative;
+    filter:drop-shadow(0 12px 30px rgba(170,110,130,.25));
+  }
+  .env-base{
+    width:100%;height:70%;
+    background:#f8e2e8;
+    border-radius:0 0 14px 14px;
+    position:absolute;
+    bottom:0;
+    border:1px solid #e8cbd4;
+  }
+  .env-flap{
+    position:absolute;top:0;left:0;
+    width:100%;height:52%;
+    overflow:hidden;
+    transform-origin:top center;
+    transition:transform 1.2s cubic-bezier(0.64, 0, 0.35, 1);
+    z-index:2;
+  }
+  .env-flap-inner{
+    width:142%;height:100%;
+    background:#f3d8e0;
+    transform: skewX(-30deg);
+    margin-left:-21%;
+    border:1px solid #e8cbd4;
+    border-top:none;
+  }
+  .envelope-wrap.opened .env-flap{
+    transform:rotateX(-180deg);
+  }
+  .hint{
+    margin-top:32px;
+    font-size:clamp(14px,3.8vw,17px);
+    letter-spacing:.22em;color:#a8728c;
+    animation:fade 2.2s ease-in-out infinite;
+  }
+  @keyframes fade{0%,100%{opacity:.4}50%{opacity:1}}
+
+  /* ---------- 打字机区域 ---------- */
+  #type-box{max-width:34em;}
+  .type-line{
+    font-size:clamp(18px,5vw,26px);
+    line-height:2.15;letter-spacing:.04em;
+    min-height:1em;
+    margin-bottom:10px;
+  }
+  .caret{
+    display:inline-block;width:2px;height:1em;
+    background:#d8547c;vertical-align:-.12em;margin-left:3px;
+    animation:blink .8s step-end infinite;
+  }
+  @keyframes blink{50%{opacity:0}}
+  .quote-text{
+    margin-top:28px;
+    font-size:clamp(15px,4vw,18px);
+    line-height:1.9;
+    color:#80485c;
+    font-style:italic;
+    opacity:0;
+    animation:quoteFade 1.4s ease forwards 0.4s;
+  }
+  @keyframes quoteFade{to{opacity:1;}}
+
+  /* ---------- 提问页面 ---------- */
+  .question{
+    font-size:clamp(24px,7vw,38px);
+    font-weight:700;line-height:1.75;
+    letter-spacing:.03em;color:#a61840;
+    text-shadow:0 6px 20px rgba(210,90,125,.25);
+    white-space: pre-line;
+  }
+  .btns{
+    display:flex;gap:clamp(14px,4vw,26px);
+    align-items:center;justify-content:center;
+    margin-top:clamp(32px,8vw,56px);
+    flex-wrap:nowrap;
+  }
+  .btn{
+    font-family:inherit;
+    font-size:clamp(16px,4.4vw,21px);
+    padding:15px 34px;border:none;border-radius:999px;
+    cursor:pointer;white-space:nowrap;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, opacity .35s;
+  }
+  .yes{
+    background:linear-gradient(135deg,#f46792,#ff87aa);
+    color:#fff;font-weight:700;
+    box-shadow:0 14px 28px rgba(220,80,120,.4);
+  }
+  .no{
+    background:#fff;color:#9c6078;
+    box-shadow:0 8px 20px rgba(160,100,120,.22);
+  }
+  #no.floating{
+    position:fixed;left:0;top:0;margin:0;z-index:40;
+    transition:transform .34s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+    will-change:transform;
+  }
+
+  /* ---------- 成功页面 ---------- */
+  .win-title{
+    font-size:clamp(28px,8vw,44px);
+    font-weight:800;color:#a61840;letter-spacing:.04em;
+    text-shadow:0 8px 24px rgba(210,90,125,.3);
+    animation:pop .8s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  .win-text{
+    margin-top:28px;
+    font-size:clamp(16px,4.2vw,20px);
+    line-height:2.2;color:#7c4056;max-width:28em;
+    animation:up 1s ease .3s both;
+  }
+  @keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .win-sign{
+    margin-top:40px;
+    font-size:clamp(15px,3.8vw,18px);
+    color:#a8728c;letter-spacing:.12em;
+    animation:up 1s ease .6s both;
+  }
+  .date-chip{
+    display:inline-block;margin-top:24px;
+    padding:8px 20px;border-radius:999px;
+    background:rgba(255,255,255,.7);
+    font-size:clamp(12px,3.4vw,15px);
+    letter-spacing:.14em;color:#b06486;
+    box-shadow:0 8px 18px rgba(180,120,145,.18);
+    animation:up 1s ease .85s both;
+  }
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<!-- 1 · 信封开场 -->
+<section class="scene active" id="s-open">
+  <div class="envelope-wrap" id="openBtn">
+    <div class="envelope">
+      <div class="env-flap">
+        <div class="env-flap-inner"></div>
+      </div>
+      <div class="env-base"></div>
+    </div>
+  </div>
+  <p class="hint">请轻触信封吧</p>
+</section>
+
+<!-- 2 · 打字机+文学引用 -->
+<section class="scene" id="s-intro">
+  <div id="type-box"></div>
+  <div class="quote-text" id="quoteBox"></div>
+</section>
+
+<!-- 3 · 提问 -->
+<section class="scene" id="s-ask">
+  <h1 class="question" id="questionText"></h1>
+  <div class="btns">
+    <button class="btn yes" id="yes">我愿意 💌</button>
+    <button class="btn no" id="no">再想想 🙈</button>
+  </div>
+</section>
+
+<!-- 4 · 成功页，正式称呼何钇洁 -->
+<section class="scene" id="s-win">
+  <h1 class="win-title" id="winTitle"></h1>
+  <p class="win-text" id="winText"></p>
+  <div class="date-chip" id="dateChip"></div>
+  <p class="win-sign" id="winSign"></p>
+</section>
+
+<script>
+/* ==================== ✏️ 自定义区域 ==================== */
+const CONFIG = {
+  intro: [
+    "hello呀，我亲爱的小何同学：",
+    "人们常说，人和人的相逢，大多偶然。",
+    "但我希望能与你产生些许故事。",
+    "于是我开始勇敢，于是你看见这一切。"
+  ],
+  quote: `"世间许多美好的事，都值得慢慢发生。"`,
+  question:  "那么，可爱美丽温柔优雅知性、世上最好的小何同学,\n要不要考虑做我的女朋友呀？",
+  winTitle:  "太好啦啦啦啦啦啦✌️",
+  winText:   "请让我正式地称呼你!<br>何钇洁♥️：<br>今夜我不关心人类，我只爱你。<br>往后日子绵长，还请多多关照。",
+  winSign:   "———— 你的、永远的陈部长",
+  showDate:  true
+};
+/* ======================================================== */
+const $ = id => document.getElementById(id);
+
+/* ---------------- 画布爱心粒子 ---------------- */
+const canvas = $('fx');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+function resizeCanvas(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+
+function heartPath(c, s){
+  c.beginPath();
+  const STEPS = 48;
+  for (let i = 0; i <= STEPS; i++){
+    const t = (i / STEPS) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+    const px = (x / 16) * s;
+    const py = (-y / 16) * s;
+    i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+  }
+  c.closePath();
+}
+
+const COLORS = ['#ff8fb1','#ff789f','#ffa8c5','#e8527c','#ffc8da','#f8a8bf'];
+const hearts = [];
+let targetCount = 20;
+
+function makeHeart(anywhere){
+  return {
+    x: Math.random() * W,
+    y: anywhere ? Math.random() * H : -70,
+    s: 5 + Math.random() * 14,
+    vy: 0.3 + Math.random() * 1.15,
+    vx: (Math.random() - 0.5) * 0.55,
+    rot: (Math.random() - 0.5) * 0.85,
+    vr: (Math.random() - 0.5) * 0.022,
+    a: 0.35 + Math.random() * 0.55,
+    ph: Math.random() * Math.PI * 2,
+    sp: 0.007 + Math.random() * 0.019,
+    color: COLORS[(Math.random() * COLORS.length) | 0]
+  };
+}
+for (let i = 0; i < targetCount; i++) hearts.push(makeHeart(true));
+
+function tick(){
+  ctx.clearRect(0, 0, W, H);
+  while (hearts.length < targetCount) hearts.push(makeHeart(false));
+  while (hearts.length > targetCount) hearts.pop();
+  for (const h of hearts){
+    h.ph += h.sp;
+    h.x += h.vx + Math.sin(h.ph) * 0.48;
+    h.y += h.vy;
+    h.rot += h.vr;
+    h.vx *= 0.983;
+    if (h.y > H + 80){ h.y = -70; h.x = Math.random() * W; }
+    if (h.x < -80)  h.x = W + 70;
+    if (h.x > W + 80) h.x = -70;
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(h.rot);
+    ctx.globalAlpha = h.a;
+    ctx.fillStyle = h.color;
+    heartPath(ctx, h.s);
+    ctx.fill();
+    ctx.restore();
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
+/* ---------------- 音效 ---------------- */
+let ac = null;
+function beep(freq, dur = 0.12, type = 'sine', vol = 0.06){
+  try{
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+
+/* ---------------- 场景切换 ---------------- */
+const scenes = { open: $('s-open'), intro: $('s-intro'), ask: $('s-ask'), win: $('s-win') };
+function goto(name){
+  Object.keys(scenes).forEach(k => scenes[k].classList.toggle('active', k === name));
+}
+
+/* ---------------- 信封点击开场 ---------------- */
+$('openBtn').addEventListener('click', () => {
+  beep(660, 0.11);
+  $('openBtn').classList.add('opened');
+  setTimeout(()=>{
+    goto('intro');
+    setTimeout(startTyping, 400);
+  },600);
+});
+
+let typingStarted = false;
+function startTyping(){
+  if (typingStarted) return;
+  typingStarted = true;
+  const box = $('type-box');
+  box.innerHTML = '';
+  $('quoteBox').textContent = CONFIG.quote;
+  let li = 0;
+  (function nextLine(){
+    if (li >= CONFIG.intro.length){
+      setTimeout(() => {
+        $('questionText').textContent = CONFIG.question;
+        goto('ask');
+      }, 1100);
+      return;
+    }
+    const text = CONFIG.intro[li];
+    const p = document.createElement('p');
+    p.className = 'type-line';
+    const span = document.createElement('span');
+    const caret = document.createElement('i');
+    caret.className = 'caret';
+    p.appendChild(span); p.appendChild(caret);
+    box.appendChild(p);
+    let ci = 0;
+    const timer = setInterval(() => {
+      span.textContent = text.slice(0, ++ci);
+      if (ci >= text.length){
+        clearInterval(timer);
+        caret.remove();
+        li++;
+        setTimeout(nextLine, 900);
+      }
+    }, 110);
+  })();
+}
+
+/* ---------------- 逃跑按钮逻辑 ---------------- */
+const noBtn  = $('no');
+const yesBtn = $('yes');
+const NO_LABELS = ['再想想 🙈','真的不再想想？','小何同学慎重一点','不要回避嘛','我会失落的','认真考虑下','点左边试试','抓不到我','别跑啦','就选择愿意吧'];
+let noFloating = false;
+let noX = 0, noY = 0, escapeCount = 0;
+
+function moveNo(){
+  const pad = 12;
+  const w = noBtn.offsetWidth  || 120;
+  const h = noBtn.offsetHeight || 54;
+  const maxX = Math.max(pad, W - w - pad);
+  const maxY = Math.max(pad, H - h - pad);
+  const minDist = Math.min(W, H) * 0.34;
+  let x = pad, y = pad, tries = 0;
+  do{
+    x = pad + Math.random() * (maxX - pad);
+    y = pad + Math.random() * (maxY - pad);
+    tries++;
+  }while (Math.hypot(x - noX, y - noY) < minDist && tries < 32);
+  noX = x; noY = y;
+  noBtn.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+function escapeNo(){
+  escapeCount++;
+  if (escapeCount >= 11){
+    noBtn.style.transition = 'transform .35s, opacity .4s';
+    noBtn.style.opacity = '0';
+    noBtn.style.pointerEvents = 'none';
+    setTimeout(() => { noBtn.style.display = 'none'; }, 400);
+    yesBtn.style.transform = 'scale(1.75)';
+    beep(900, 0.18, 'sine', 0.075);
+    return;
+  }
+  if (!noFloating){
+    const r = noBtn.getBoundingClientRect();
+    noX = r.left; noY = r.top;
+    noBtn.classList.add('floating');
+    noBtn.style.transform = `translate(${noX}px, ${noY}px)`;
+    noFloating = true;
+    requestAnimationFrame(() => requestAnimationFrame(moveNo));
+  }else{
+    moveNo();
+  }
+  beep(520 + Math.random() * 420, 0.075, 'triangle', 0.045);
+  noBtn.textContent = NO_LABELS[Math.min(escapeCount, NO_LABELS.length - 1)];
+  yesBtn.style.transform = `scale(${Math.min(1 + escapeCount * 0.085, 1.75)})`;
+}
+
+noBtn.addEventListener('mouseenter', escapeNo);
+noBtn.addEventListener('click', e => { e.preventDefault(); escapeNo(); });
+noBtn.addEventListener('touchstart', e => { e.preventDefault(); escapeNo(); }, { passive: false });
+
+/* ---------------- 确认成功，粒子爆发 ---------------- */
+yesBtn.addEventListener('click', () => {
+  beep(790, 0.13, 'sine', 0.09);
+  setTimeout(() => beep(1000, 0.13, 'sine', 0.09), 120);
+  setTimeout(() => beep(1325, 0.38, 'sine', 0.09), 240);
+  noBtn.style.display = 'none';
+  burst();
+  goto('win');
+});
+
+function burst(){
+  targetCount = 85;
+  const cx = W / 2, cy = H / 2;
+  for (let i = 0; i < 40; i++){
+    const h = makeHeart(true);
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 3.5 + Math.random() * 7.5;
+    h.x = cx; h.y = cy;
+    h.vx = Math.cos(ang) * spd;
+    h.vy = Math.sin(ang) * spd;
+    h.a = 0.65 + Math.random() * 0.35;
+    h.s = 9 + Math.random() * 17;
+    hearts.push(h);
+  }
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  if (noFloating && noBtn.style.display !== 'none'){
+    const w = noBtn.offsetWidth  || 120;
+    const h = noBtn.offsetHeight || 54;
+    noX = Math.min(Math.max(noX, 12), Math.max(12, W - w - 12));
+    noY = Math.min(Math.max(noY, 12), Math.max(12, H - h - 12));
+    noBtn.style.transform = `translate(${noX}px, ${noY}px)`;
+  }
+});
+
+/* ---------------- 文案初始化 ---------------- */
+$('questionText').textContent = CONFIG.question;
+$('winTitle').textContent     = CONFIG.winTitle;
+$('winText').innerHTML        = CONFIG.winText;
+$('winSign').textContent      = CONFIG.winSign;
+if (CONFIG.showDate){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  $('dateChip').textContent = `${d.getFullYear()} . ${p(d.getMonth()+1)} . ${p(d.getDate())}`;
+}else{
+  $('dateChip').style.display = 'none';
+}
+</script>
+</body>
+</html>
